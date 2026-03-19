@@ -1,0 +1,2286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROTA LÓGICA — Temporal no Volante</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --road:       #2e2e2e;
+  --road-edge:  #3d3d3d;
+  --grass:      #3a7a1e;
+  --grass2:     #2d6018;
+  --yellow:     #FFD700;
+  --white:      #f8f8ff;
+  --bg:         #0b0b14;
+  --panel:      #101018;
+  --card:       #161624;
+  --border:     #222236;
+  --text:       #eaeaf5;
+  --muted:      #5a5a88;
+  --red:        #e74c3c;
+  --green:      #27ae60;
+  --amber:      #e67e22;
+  --blue:       #2980b9;
+  --cyan:       #00bfa5;
+  --purple:     #8e44ad;
+  --pink:       #e91e8c;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ===================== SCREENS ===================== */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ===================== TOP BAR ===================== */
+#topbar {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--panel);
+  border-bottom: 2px solid var(--border);
+  padding: 0.65rem 1.5rem;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+}
+#topbar.visible { display: flex; }
+
+.logo-px {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.75rem;
+  color: var(--yellow);
+  letter-spacing: 0.05em;
+}
+.logo-px span { color: var(--white); }
+
+.day-track {
+  display: flex; gap: 0.4rem; align-items: center;
+}
+.d-pip {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.42rem;
+  color: var(--muted);
+  transition: all 0.35s;
+}
+.d-pip.active { border-color: var(--yellow); color: var(--yellow); box-shadow: 0 0 12px rgba(255,215,0,0.3); }
+.d-pip.done { border-color: var(--green); color: var(--green); background: rgba(39,174,96,0.12); }
+.d-pip-sep { width: 16px; height: 2px; background: var(--border); }
+
+/* ===================== INTRO SCREEN ===================== */
+#intro {
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.intro-road-deco {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 160px;
+  background: var(--road);
+  overflow: hidden;
+}
+.intro-road-deco::before {
+  content: '';
+  position: absolute;
+  left: -200px; right: 0;
+  top: 50%; height: 5px;
+  background: repeating-linear-gradient(90deg, var(--yellow) 0, var(--yellow) 40px, transparent 40px, transparent 80px);
+  animation: stripe-flow 0.4s linear infinite;
+}
+.intro-road-deco::after {
+  content: '🚗';
+  position: absolute;
+  left: -60px;
+  top: calc(50% + 14px);
+  font-size: 2.2rem;
+  transform: scaleX(-1);
+  animation: car-intro 4s linear infinite;
+}
+@keyframes stripe-flow { to { transform: translateX(80px); } }
+@keyframes car-intro { from { left: -60px; } to { left: 110%; } }
+
+.intro-wrap { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
+
+.intro-badge {
+  display: inline-block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  padding: 0.4rem 0.9rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.06em;
+  animation: pulse-border 2s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,191,165,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(0,191,165,0); }
+}
+
+.intro-h1 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(1.3rem, 4vw, 2.4rem);
+  line-height: 1.4;
+  margin-bottom: 1.2rem;
+  color: var(--white);
+}
+.intro-h1 em { color: var(--yellow); font-style: normal; }
+
+.intro-sub {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--muted);
+  max-width: 520px;
+  margin: 0 auto 2.5rem;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 2.5rem;
+  text-align: left;
+}
+.prev-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  display: flex; gap: 0.8rem; align-items: flex-start;
+  transition: border-color 0.2s;
+}
+.prev-item:hover { border-color: var(--yellow); }
+.prev-icon { font-size: 2rem; flex-shrink: 0; margin-top: 2px; }
+.prev-day { font-family: 'Press Start 2P', monospace; font-size: 0.42rem; color: var(--muted); margin-bottom: 0.3rem; }
+.prev-ttl { font-weight: 700; font-size: 0.88rem; margin-bottom: 0.2rem; }
+.prev-tag { font-size: 0.72rem; color: var(--cyan); }
+
+.btn-px {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  background: var(--yellow);
+  color: #000;
+  border: none;
+  padding: 0.95rem 2.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.05em;
+}
+.btn-px:hover { background: var(--white); transform: scale(1.05); box-shadow: 0 8px 28px rgba(255,215,0,0.35); }
+.btn-px:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ===================== DAY SCREEN ===================== */
+#day-screen { flex-direction: column; }
+
+.day-hdr {
+  padding: 1rem 1.5rem;
+  display: flex; align-items: center; gap: 0.9rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.day-badge {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  background: var(--yellow);
+  color: #000;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+}
+.day-ttl { font-size: 1.15rem; font-weight: 900; }
+.day-concept-tag {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--cyan);
+  border: 1px solid rgba(0,191,165,0.35);
+  padding: 0.3rem 0.7rem;
+  border-radius: 5px;
+}
+
+/* ===================== ROAD SCENE ===================== */
+.road-scene {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background: var(--grass);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* Grass edge strips */
+.gs-top, .gs-bot {
+  position: absolute; left: 0; right: 0;
+  height: 68px;
+  background: var(--grass2);
+  z-index: 1;
+}
+.gs-top { top: 0; }
+.gs-bot { bottom: 0; }
+
+/* Decorative tree row */
+.tree-row {
+  position: absolute; left: 0; right: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 0.5rem;
+  z-index: 2;
+  pointer-events: none;
+}
+.tree-row.top { top: 6px; }
+.tree-row.bot { bottom: 6px; }
+.tree-row span { font-size: 1.5rem; }
+
+/* Road strip */
+.road-strip {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%; transform: translateY(-50%);
+  height: 150px;
+  background: var(--road);
+  z-index: 3;
+}
+.road-strip::before, .road-strip::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 5px;
+  background: rgba(255,255,255,0.55);
+}
+.road-strip::before { top: 0; }
+.road-strip::after { bottom: 0; }
+
+/* Center dashes */
+.c-dashes {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%; height: 5px;
+  transform: translateY(-50%);
+  z-index: 5;
+  overflow: hidden;
+}
+.c-dashes::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: -80px; right: 0;
+  background: repeating-linear-gradient(90deg, var(--yellow) 0, var(--yellow) 38px, transparent 38px, transparent 76px);
+}
+.c-dashes.moving::before { animation: dash-flow 0.35s linear infinite; }
+@keyframes dash-flow { to { transform: translateX(76px); } }
+
+/* Intersection (days 3+) */
+.x-road {
+  display: none;
+  position: absolute;
+  left: 62%; width: 110px;
+  top: 0; bottom: 0;
+  background: var(--road);
+  z-index: 4;
+}
+.x-road::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: -80px; bottom: -80px;
+  width: 5px; transform: translateX(-50%);
+  background: repeating-linear-gradient(180deg, var(--yellow) 0, var(--yellow) 20px, transparent 20px, transparent 40px);
+  animation: v-dash 0.35s linear infinite;
+}
+@keyframes v-dash { to { background-position: 0 40px; } }
+.x-road::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 0; right: 0;
+  border-left: 5px solid rgba(255,255,255,0.4);
+  border-right: 5px solid rgba(255,255,255,0.4);
+}
+
+/* Landmarks */
+.landmark {
+  position: absolute;
+  top: 4px; z-index: 6;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.landmark .lm-icon { font-size: 1.6rem; }
+.landmark .lm-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.38rem;
+  color: var(--yellow);
+  white-space: nowrap;
+}
+.lm-casa { left: 2%; }
+.lm-facu { right: 2%; }
+
+/* Player car */
+.p-car {
+  position: absolute;
+  font-size: 2.4rem;
+  top: calc(50% + 22px);
+  left: 7%;
+  transform: scaleX(-1) translateY(-50%);
+  z-index: 12;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
+  transition: left 0.05s;
+}
+
+/* Other car (day 4) */
+.o-car {
+  position: absolute;
+  font-size: 2rem;
+  left: 65%;
+  top: -70px;
+  transform: rotate(180deg) translateX(-50%);
+  z-index: 12;
+  display: none;
+  filter: drop-shadow(0 2px 8px rgba(231,76,60,0.6));
+}
+
+/* Stop sign */
+.stop-sign {
+  position: absolute;
+  top: calc(50% - 95px);
+  left: 63%;
+  z-index: 14;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+}
+.stop-face {
+  width: 52px; height: 52px;
+  background: var(--red);
+  color: white;
+  font-weight: 900;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  display: flex; align-items: center; justify-content: center;
+  clip-path: polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%);
+  font-family: 'Outfit', sans-serif;
+}
+.sign-pole { width: 6px; height: 44px; background: #aaa; border-radius: 3px; }
+
+/* Traffic light */
+.t-light {
+  position: absolute;
+  top: calc(50% - 122px);
+  left: 66%;
+  z-index: 14;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+}
+.tl-housing {
+  background: #111;
+  border: 2px solid #333;
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.tl-b {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.tl-b.r-on { background: var(--red); box-shadow: 0 0 14px rgba(231,76,60,0.9); }
+.tl-b.y-on { background: var(--amber); box-shadow: 0 0 14px rgba(230,126,34,0.9); }
+.tl-b.g-on { background: var(--green); box-shadow: 0 0 14px rgba(39,174,96,0.9); }
+.t-light .sign-pole { height: 52px; }
+
+/* Scene bubble */
+.s-overlay {
+  position: absolute; inset: 0;
+  z-index: 30; display: flex;
+  align-items: flex-end; justify-content: center;
+  padding-bottom: 10px;
+  pointer-events: none;
+  opacity: 0; transition: opacity 0.25s;
+}
+.s-overlay.on { opacity: 1; }
+.s-bubble {
+  background: rgba(5,5,15,0.88);
+  border: 2px solid var(--yellow);
+  border-radius: 10px;
+  padding: 0.6rem 1.1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.48rem;
+  color: var(--yellow);
+  text-align: center;
+  line-height: 1.8;
+  animation: pop-in 0.25s ease;
+}
+@keyframes pop-in { from { opacity:0; transform:scale(0.9) translateY(8px); } to { opacity:1; transform:none; } }
+
+/* Crash flash */
+.crash-flash {
+  position: absolute; inset: 0; z-index: 25;
+  background: rgba(255,60,60,0.4);
+  display: none;
+  animation: flash-anim 0.5s ease forwards;
+  pointer-events: none;
+}
+@keyframes flash-anim {
+  0% { opacity:0; } 20% { opacity:1; } 100% { opacity:0; }
+}
+
+/* ===================== CONTENT AREA ===================== */
+.c-area {
+  flex: 1;
+  padding: 1.4rem 1.5rem;
+  display: flex; flex-direction: column; gap: 1.1rem;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.narr-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem 1.4rem;
+}
+.narr-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.48rem;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.08em;
+}
+.narr-txt { font-size: 0.92rem; line-height: 1.75; color: #cccce0; }
+
+.drive-btn-wrap { display: flex; align-items: center; gap: 0.8rem; }
+
+/* ===================== THEORY CARD ===================== */
+.theory-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: none;
+  animation: rise 0.5s ease;
+}
+.theory-card.on { display: block; }
+@keyframes rise { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+.th-hdr { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
+.th-icon { font-size: 2.6rem; flex-shrink: 0; margin-top: 2px; }
+.th-sub { font-family:'Press Start 2P',monospace; font-size:0.44rem; color:var(--muted); margin-bottom:0.3rem; letter-spacing:0.08em; }
+.th-title { font-size: 1.15rem; font-weight: 900; color: var(--cyan); line-height: 1.2; }
+
+.th-body { font-size: 0.86rem; line-height: 1.85; color: #c0c0d8; }
+.th-body strong { color: var(--white); }
+.th-body em { color: var(--yellow); font-style: normal; font-weight: 600; }
+
+.concepts { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem; }
+.concept {
+  border-radius: 8px;
+  border-left: 3px solid;
+  background: rgba(255,255,255,0.03);
+  padding: 0.7rem 1rem;
+  font-size: 0.83rem;
+  line-height: 1.65;
+}
+.concept-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.44rem;
+  margin-bottom: 0.35rem;
+}
+.c-yellow { border-color: var(--yellow); }
+.c-yellow .concept-lbl { color: var(--yellow); }
+.c-cyan   { border-color: var(--cyan); }
+.c-cyan   .concept-lbl { color: var(--cyan); }
+.c-red    { border-color: var(--red); }
+.c-red    .concept-lbl { color: var(--red); }
+.c-green  { border-color: var(--green); }
+.c-green  .concept-lbl { color: var(--green); }
+.c-purple { border-color: var(--purple); }
+.c-purple .concept-lbl { color: var(--purple); }
+.c-pink   { border-color: var(--pink); }
+.c-pink   .concept-lbl { color: var(--pink); }
+
+.formula {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  margin: 0.7rem 0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.88rem;
+  color: var(--yellow);
+  letter-spacing: 0.03em;
+}
+
+.ai-box {
+  margin-top: 1rem;
+  background: rgba(0,191,165,0.07);
+  border: 1px solid rgba(0,191,165,0.3);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+}
+.ai-box-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.44rem;
+  color: var(--cyan);
+  margin-bottom: 0.4rem;
+}
+.ai-box p { font-size: 0.83rem; line-height: 1.7; color: #c0c0d8; }
+.ai-box p strong { color: var(--white); }
+
+/* ===================== QUIZ ===================== */
+.quiz-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: none;
+  animation: rise 0.4s ease;
+}
+.quiz-card.on { display: block; }
+
+.q-lbl { font-family:'Press Start 2P',monospace; font-size:0.44rem; color:var(--muted); margin-bottom:0.75rem; }
+.q-txt { font-size: 0.96rem; font-weight: 700; line-height: 1.5; margin-bottom: 1rem; }
+
+.opts { display: flex; flex-direction: column; gap: 0.55rem; }
+.opt-btn {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.84rem;
+  color: var(--text);
+  text-align: left;
+  display: flex; align-items: center; gap: 0.7rem;
+  transition: all 0.18s;
+}
+.opt-btn:hover:not(:disabled) { border-color: var(--yellow); background: rgba(255,215,0,0.05); transform: translateX(4px); }
+.opt-btn:disabled { cursor: default; }
+.opt-btn.ok { border-color: var(--green); background: rgba(39,174,96,0.1); color: var(--green); }
+.opt-btn.fail { border-color: var(--red); background: rgba(231,76,60,0.1); color: var(--red); }
+.opt-ltr {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.42rem;
+  flex-shrink: 0;
+  transition: all 0.18s;
+}
+.opt-btn.ok .opt-ltr { border-color: var(--green); color: var(--green); }
+.opt-btn.fail .opt-ltr { border-color: var(--red); color: var(--red); }
+
+.q-fb {
+  margin-top: 0.9rem;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  font-size: 0.83rem;
+  line-height: 1.65;
+  display: none;
+  animation: rise 0.3s ease;
+}
+.q-fb.on { display: block; }
+.q-fb.ok { background: rgba(39,174,96,0.1); border: 1px solid var(--green); color: #a0eec0; }
+.q-fb.fail { background: rgba(231,76,60,0.1); border: 1px solid var(--red); color: #f0a0a0; }
+
+.act-row { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.btn-next {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  background: var(--cyan);
+  color: #000;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: none;
+}
+.btn-next.on { display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-next:hover { background: var(--white); transform: translateX(3px); }
+
+/* ===================== FINAL SCREEN ===================== */
+#final {
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.final-wrap { max-width: 700px; }
+.trophy { font-size: 5rem; margin-bottom: 1rem; animation: bounce-trophy 0.8s ease; }
+@keyframes bounce-trophy {
+  0%   { transform: scale(0); opacity:0; }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1); opacity:1; }
+}
+.final-h { font-family:'Press Start 2P',monospace; font-size: clamp(1rem,3vw,1.5rem); color:var(--yellow); line-height:1.6; margin-bottom:0.8rem; }
+.final-sub { color:var(--muted); font-size:0.9rem; margin-bottom:2rem; }
+
+.recap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+.recap-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+.recap-day { font-family:'Press Start 2P',monospace; font-size:0.4rem; color:var(--muted); margin-bottom:0.35rem; }
+.recap-th { font-weight:700; font-size:0.88rem; color:var(--cyan); margin-bottom:0.3rem; }
+.recap-desc { font-size:0.76rem; color:var(--muted); line-height:1.5; }
+
+/* ===================== APLICAÇÕES SCREEN ===================== */
+#aplicacoes {
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1.5rem 4rem;
+}
+.apl-wrap { max-width: 900px; width: 100%; }
+
+.apl-back {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  display: inline-block;
+  transition: all 0.2s;
+}
+.apl-back:hover { border-color: var(--cyan); color: var(--cyan); }
+
+.apl-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+  color: var(--white);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.apl-sub {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+  margin-bottom: 3rem;
+  line-height: 1.7;
+}
+
+/* Tree connector */
+.tree-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.tree-root {
+  background: var(--card);
+  border: 1px solid var(--cyan);
+  border-radius: 10px;
+  padding: 0.65rem 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cyan);
+  box-shadow: 0 0 18px rgba(0,191,165,0.2);
+  animation: apl-pulse 2.5s ease-in-out infinite;
+}
+@keyframes apl-pulse {
+  0%,100% { box-shadow: 0 0 10px rgba(0,191,165,0.2); }
+  50%      { box-shadow: 0 0 28px rgba(0,191,165,0.5); }
+}
+
+.branch-lines {
+  position: relative;
+  width: 60%;
+  height: 50px;
+  margin: 0 auto;
+}
+.branch-lines svg { width: 100%; height: 100%; overflow: visible; }
+.branch-lines path {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+}
+.branch-lines path.drawn {
+  animation: draw-path 0.8s ease forwards;
+}
+@keyframes draw-path { to { stroke-dashoffset: 0; } }
+
+/* App cards */
+.apl-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.2rem;
+}
+
+.apl-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.6rem;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: border-color 0.3s;
+}
+.apl-card.visible {
+  animation: apl-rise 0.6s ease forwards;
+}
+.apl-card:hover { border-color: var(--cyan); }
+@keyframes apl-rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.apl-card-hdr {
+  display: flex; align-items: center; gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+.apl-card-icon { font-size: 2rem; }
+.apl-card-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.52rem;
+  color: var(--cyan);
+  line-height: 1.7;
+}
+
+.apl-card-body {
+  font-size: 0.83rem;
+  line-height: 1.8;
+  color: #c0c0d8;
+  margin-bottom: 1rem;
+}
+.apl-card-body strong { color: var(--white); }
+
+.apl-example-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.38rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+/* Typewriter quote */
+.apl-quote {
+  background: rgba(0,0,0,0.45);
+  border-left: 3px solid var(--cyan);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: var(--cyan);
+  line-height: 1.65;
+  min-height: 3.5em;
+  margin-bottom: 0.9rem;
+}
+.cursor {
+  display: inline-block;
+  width: 8px; height: 1em;
+  background: var(--cyan);
+  animation: blink 0.75s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Result chips */
+.result-chips {
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.r-chip {
+  background: rgba(0,191,165,0.07);
+  border: 1px solid rgba(0,191,165,0.25);
+  border-radius: 6px;
+  padding: 0.5rem 0.8rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: var(--green);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.4s ease;
+}
+.r-chip.shown { opacity: 1; transform: translateX(0); }
+
+/* Animated chip (Intel) */
+.chip-anim {
+  position: relative;
+  width: 80px; height: 80px;
+  margin: 0.8rem auto;
+}
+.chip-body {
+  position: absolute;
+  inset: 12px;
+  background: #1a1a2e;
+  border: 2px solid var(--cyan);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 0 14px rgba(0,191,165,0.35);
+}
+.chip-pin {
+  position: absolute;
+  width: 6px; height: 6px;
+  background: var(--cyan);
+  border-radius: 1px;
+}
+.chip-pin.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.chip-pin.err { background: var(--red);   box-shadow: 0 0 6px var(--red);   animation: pin-flash 0.6s ease infinite; }
+@keyframes pin-flash { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* Server dots (Google) */
+.server-row {
+  display: flex; gap: 0.5rem; justify-content: center;
+  margin: 0.8rem 0;
+}
+.srv-dot {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem;
+  transition: all 0.4s;
+}
+.srv-dot.updated { border-color: var(--green); background: rgba(39,174,96,0.15); box-shadow: 0 0 10px rgba(39,174,96,0.3); }
+.srv-dot.syncing { border-color: var(--amber); animation: syncing 0.8s ease infinite; }
+@keyframes syncing { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+@media (max-width: 600px) {
+  .apl-cards { grid-template-columns: 1fr; }
+  .branch-lines { width: 90%; }
+}
+
+/* ===================== ENIGMA SCREEN ===================== */
+#enigma {
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+.enigma-wrap { max-width: 760px; width: 100%; }
+
+.enigma-badge {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.48rem;
+  color: var(--pink);
+  border: 1px solid var(--pink);
+  padding: 0.4rem 0.9rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 1.2rem;
+  letter-spacing: 0.06em;
+  animation: pulse-pink 2s ease-in-out infinite;
+}
+@keyframes pulse-pink {
+  0%,100% { box-shadow: 0 0 0 0 rgba(233,30,140,0.4); }
+  50%      { box-shadow: 0 0 0 8px rgba(233,30,140,0); }
+}
+
+.enigma-h {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.9rem, 2.5vw, 1.4rem);
+  color: var(--white);
+  line-height: 1.6;
+  margin-bottom: 0.6rem;
+}
+.enigma-sub { font-size: 0.9rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.7; }
+
+/* Story card */
+.story-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+.story-tag { font-family:'Press Start 2P',monospace; font-size:0.44rem; color:var(--muted); margin-bottom:0.7rem; }
+.story-scene {
+  display: flex; gap: 1rem; align-items: flex-start;
+  margin-bottom: 1rem;
+}
+.story-emoji { font-size: 2.8rem; flex-shrink: 0; }
+.story-txt { font-size: 0.88rem; line-height: 1.8; color: #cccce0; }
+.story-txt strong { color: var(--white); }
+.story-txt em { color: var(--pink); font-style: normal; font-weight: 700; }
+
+.broken-formula {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  color: var(--yellow);
+  margin-top: 0.8rem;
+}
+.broken-formula .label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.4rem;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+.broken-formula .missing { color: var(--border); letter-spacing: 0.05em; }
+
+/* Behavior list */
+.bad-list {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  margin-top: 1rem;
+}
+.bad-item {
+  display: flex; align-items: center; gap: 0.7rem;
+  background: rgba(231,76,60,0.08);
+  border: 1px solid rgba(231,76,60,0.25);
+  border-radius: 7px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.82rem;
+  color: #f0a0a0;
+}
+.bad-item .bi-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+/* Constraint builder */
+.builder-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+.builder-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  color: var(--cyan);
+  margin-bottom: 0.4rem;
+}
+.builder-desc { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.6; }
+
+.formula-display {
+  background: rgba(0,0,0,0.5);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  min-height: 56px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.2rem;
+  transition: border-color 0.3s;
+}
+.formula-display.valid   { border-color: var(--green); box-shadow: 0 0 12px rgba(39,174,96,0.2); }
+.formula-display.invalid { border-color: var(--red);   box-shadow: 0 0 12px rgba(231,76,60,0.2); }
+.formula-display.partial { border-color: var(--amber); }
+
+.f-base { color: var(--yellow); font-weight: 700; }
+.f-sep  { color: var(--muted); }
+.f-chip-added {
+  background: rgba(0,191,165,0.15);
+  border: 1px solid var(--cyan);
+  border-radius: 5px;
+  color: var(--cyan);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.f-chip-added:hover { background: rgba(231,76,60,0.2); border-color: var(--red); color: var(--red); }
+.f-placeholder { color: var(--border); font-size: 0.8rem; font-style: italic; }
+
+/* Constraint chips palette */
+.palette-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.7rem; }
+.palette {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+.c-chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-size: 0.8rem;
+  display: flex; flex-direction: column; gap: 0.2rem;
+  text-align: left;
+}
+.c-chip:hover:not(.used) { border-color: var(--cyan); background: rgba(0,191,165,0.07); transform: translateY(-2px); }
+.c-chip.used { opacity: 0.3; cursor: default; transform: none; }
+.c-chip.distractor:hover:not(.used) { border-color: var(--amber); background: rgba(230,126,34,0.07); }
+
+.chip-code { font-family:'Courier New',monospace; font-size:0.82rem; color:var(--yellow); }
+.chip-desc { font-size:0.7rem; color:var(--muted); }
+
+.test-btn-row { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
+.btn-test {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-test.run  { background: var(--cyan); color: #000; }
+.btn-test.run:hover { background: var(--white); }
+.btn-test.clr  { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.btn-test.clr:hover { border-color: var(--red); color: var(--red); }
+
+/* Result panel */
+.result-panel {
+  border-radius: 12px;
+  padding: 1.3rem;
+  margin-top: 1rem;
+  display: none;
+  animation: rise 0.4s ease;
+  text-align: left;
+}
+.result-panel.on { display: block; }
+.result-panel.ok   { background: rgba(39,174,96,0.1); border: 1px solid var(--green); }
+.result-panel.bad  { background: rgba(231,76,60,0.1); border: 1px solid var(--red); }
+.result-panel.warn { background: rgba(230,126,34,0.1); border: 1px solid var(--amber); }
+
+.rp-title { font-family:'Press Start 2P',monospace; font-size:0.5rem; margin-bottom:0.6rem; }
+.result-panel.ok .rp-title   { color: var(--green); }
+.result-panel.bad .rp-title  { color: var(--red); }
+.result-panel.warn .rp-title { color: var(--amber); }
+.rp-body { font-size:0.82rem; line-height:1.75; color:#cccce0; }
+.rp-body strong { color: var(--white); }
+.rp-body em { color: var(--yellow); font-style:normal; font-weight:600; }
+
+/* Simulation strip */
+.sim-strip {
+  background: var(--road);
+  border-radius: 10px;
+  height: 60px;
+  position: relative;
+  overflow: hidden;
+  margin: 0.8rem 0;
+}
+.sim-strip::before {
+  content:'';
+  position:absolute; left:0; right:0; top:50%; height:3px;
+  background: repeating-linear-gradient(90deg, var(--yellow) 0, var(--yellow) 20px, transparent 20px, transparent 40px);
+}
+.sim-car {
+  position:absolute;
+  top:50%; transform: scaleX(-1) translateY(-50%);
+  font-size:1.8rem;
+  transition: left 1s linear;
+}
+.sim-obstacle {
+  position:absolute;
+  top:50%; transform:translateY(-50%);
+  font-size:1.5rem;
+}
+
+/* Solved screen overlay */
+.solved-banner {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+.solved-banner.on { display: flex; }
+.solved-icon { font-size: 4rem; animation: bounce-trophy 0.8s ease; }
+.solved-h { font-family:'Press Start 2P',monospace; font-size:clamp(0.9rem,2.5vw,1.3rem); color:var(--yellow); line-height:1.6; }
+.solved-sub { font-size:0.88rem; color:var(--muted); max-width:520px; line-height:1.7; }
+
+/* ===================== NOTIFICATION ===================== */
+#notif {
+  position: fixed;
+  bottom: 1.5rem; right: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--yellow);
+  border-radius: 10px;
+  padding: 0.9rem 1.2rem;
+  font-size: 0.82rem;
+  z-index: 999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  max-width: 270px;
+  pointer-events: none;
+}
+#notif.on { transform: translateY(0); opacity: 1; }
+#notif-t { font-family:'Press Start 2P',monospace; font-size:0.48rem; color:var(--yellow); margin-bottom:0.3rem; }
+
+@keyframes trivial-pop {
+  from { transform:translate(-50%,-50%) scale(0.2); opacity:0; }
+  to   { transform:translate(-50%,-50%) scale(1);   opacity:1; }
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 600px) {
+  .preview-grid { grid-template-columns: 1fr; }
+  .recap-grid { grid-template-columns: 1fr; }
+  .road-scene { height: 230px; }
+  .p-car { font-size: 1.8rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div id="notif">
+  <div id="notif-t"></div>
+  <div id="notif-b"></div>
+</div>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo-px">ROTA<span> LÓGICA</span></div>
+  <div class="day-track">
+    <div class="d-pip" id="pip1">D1</div>
+    <div class="d-pip-sep"></div>
+    <div class="d-pip" id="pip2">D2</div>
+  </div>
+</div>
+
+<!-- =================== INTRO =================== -->
+<div class="screen active" id="intro">
+  <div class="intro-road-deco"></div>
+  <div class="intro-wrap">
+    <div class="intro-badge">🚗 JORNADA DE 2 DIAS</div>
+    <h1 class="intro-h1">DE CASA À<br><em>FACULDADE</em></h1>
+    <p class="intro-sub">
+      Um trajeto simples. Dois dias. Duas reviravoltas.<br>
+      Cada uma ensina um pilar da <strong style="color:var(--white)">lógica temporal</strong> — a mesma que governa como IAs raciocinam sobre o tempo.
+    </p>
+    <div class="preview-grid">
+      <div class="prev-item">
+        <div class="prev-icon">🛣️</div>
+        <div>
+          <div class="prev-day">DIA 1</div>
+          <div class="prev-ttl">Caminho Livre</div>
+          <div class="prev-tag">Lógica Temporal Linear (LTL)</div>
+        </div>
+      </div>
+      <div class="prev-item">
+        <div class="prev-icon">🛑</div>
+        <div>
+          <div class="prev-day">DIA 2</div>
+          <div class="prev-ttl">Apareceu um PARE</div>
+          <div class="prev-tag">Problema do Frame</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-px" onclick="startJourney()">▶ COMEÇAR JORNADA</button>
+    <br><br>
+    <div style="display:flex; gap:0.8rem; justify-content:center; flex-wrap:wrap;">
+      <button class="btn-px" style="background:var(--pink); font-size:0.55rem;" onclick="showScreen('enigma')">🧩 &nbsp;IR DIRETO AO ENIGMA</button>
+      <button class="btn-px" style="background:var(--cyan); color:#000; font-size:0.55rem;" onclick="showScreen('aplicacoes')">🔬 &nbsp;APLICAÇÕES NA IA</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== DAY SCREEN =================== -->
+<div class="screen" id="day-screen">
+
+  <!-- Header -->
+  <div class="day-hdr">
+    <div class="day-badge" id="day-badge">DIA 1</div>
+    <div class="day-ttl" id="day-ttl">Caminho Livre</div>
+    <div class="day-concept-tag" id="day-concept">LTL</div>
+  </div>
+
+  <!-- Road Scene -->
+  <div class="road-scene" id="road-scene">
+    <div class="gs-top"></div>
+    <div class="gs-bot"></div>
+    <div class="tree-row top">
+      <span>🌳</span><span>🏠</span><span>🌳</span><span>🌳</span><span>🌲</span><span>🏠</span><span>🌳</span><span>🌲</span><span>🌳</span><span>🏠</span><span>🌲</span>
+    </div>
+    <div class="tree-row bot">
+      <span>🌲</span><span>🌳</span><span>🌲</span><span>🌳</span><span>🌲</span><span>🌳</span><span>🌲</span><span>🌳</span><span>🌲</span><span>🌳</span><span>🌲</span>
+    </div>
+    <div class="road-strip"></div>
+    <div class="c-dashes" id="dashes"></div>
+    <div class="x-road" id="xroad"></div>
+    <div class="landmark lm-casa"><div class="lm-icon">🏡</div><div class="lm-lbl">CASA</div></div>
+    <div class="landmark lm-facu"><div class="lm-icon">🏫</div><div class="lm-lbl">FACUL</div></div>
+    <!-- Player car -->
+    <div class="p-car" id="pcar">🚗</div>
+    <!-- Stop sign -->
+    <div class="stop-sign" id="ssign">
+      <div class="stop-face">PARE</div>
+      <div class="sign-pole"></div>
+    </div>
+    <!-- Traffic light -->
+    <div class="t-light" id="tlight">
+      <div class="tl-housing">
+        <div class="tl-b" id="tlr"></div>
+        <div class="tl-b" id="tly"></div>
+        <div class="tl-b" id="tlg"></div>
+      </div>
+      <div class="sign-pole"></div>
+    </div>
+    <!-- Other car -->
+    <div class="o-car" id="ocar">🚕</div>
+    <!-- Crash flash -->
+    <div class="crash-flash" id="cflash"></div>
+    <!-- Scene bubble -->
+    <div class="s-overlay" id="sov">
+      <div class="s-bubble" id="sbub"></div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="c-area">
+    <div class="narr-card">
+      <div class="narr-lbl">📖 HISTÓRIA</div>
+      <div class="narr-txt" id="narr-txt">...</div>
+    </div>
+
+    <div class="drive-btn-wrap">
+      <button class="btn-px" id="drive-btn" onclick="drive()">🚗 &nbsp;DIRIGIR</button>
+    </div>
+
+    <!-- Theory -->
+    <div class="theory-card" id="theory-card">
+      <div class="th-hdr">
+        <div class="th-icon" id="th-icon">⏱</div>
+        <div>
+          <div class="th-sub">TEORIA DA LÓGICA TEMPORAL</div>
+          <div class="th-title" id="th-title">...</div>
+        </div>
+      </div>
+      <div class="th-body" id="th-body"></div>
+      <div class="concepts" id="th-concepts"></div>
+      <div class="ai-box" id="ai-box">
+        <div class="ai-box-lbl">🤖 CONEXÃO COM IA</div>
+        <p id="ai-txt"></p>
+      </div>
+    </div>
+
+    <!-- Quiz -->
+    <div class="quiz-card" id="quiz-card">
+      <div class="q-lbl">🎯 DESAFIO DO DIA</div>
+      <div class="q-txt" id="q-txt">...</div>
+      <div class="opts" id="q-opts"></div>
+      <div class="q-fb" id="q-fb"></div>
+      <div class="act-row">
+        <button class="btn-next" id="btn-next">PRÓXIMO DIA &nbsp;▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== APLICAÇÕES =================== -->
+<div class="screen" id="aplicacoes">
+  <div class="apl-wrap">
+    <button class="apl-back" onclick="showScreen('intro')">← VOLTAR</button>
+
+    <h2 class="apl-title">APLICAÇÕES NA IA</h2>
+    <p class="apl-sub">Lógica temporal não é só teoria — ela está rodando agora em chips, servidores e sistemas críticos ao redor do mundo.</p>
+
+    <!-- Tree root -->
+    <div class="tree-connector">
+      <div class="tree-root">Aplicação na Tecnologia</div>
+      <div class="branch-lines">
+        <svg viewBox="0 0 400 50" preserveAspectRatio="none">
+          <path id="branch-left"  d="M200,0 L200,25 L50,25 L50,50"/>
+          <path id="branch-right" d="M200,0 L200,25 L350,25 L350,50"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="apl-cards">
+
+      <!-- INTEL -->
+      <div class="apl-card" id="apl-intel">
+        <div class="apl-card-hdr">
+          <div class="apl-card-icon">💻</div>
+          <div class="apl-card-name">INTEL<br>Verificação de Chips</div>
+        </div>
+
+        <!-- Chip animation -->
+        <div class="chip-anim" id="chip-anim">
+          <div class="chip-body">🔲</div>
+        </div>
+
+        <div class="apl-card-body">
+          A Intel usa lógica temporal para testar se os processadores <strong>seguem todas as regras de funcionamento</strong> antes mesmo de serem fabricados. Isso evita falhas físicas impossíveis de corrigir depois.
+        </div>
+
+        <div class="apl-example-lbl">EXEMPLO EM LÓGICA TEMPORAL</div>
+        <div class="apl-quote" id="intel-quote"><span class="cursor"></span></div>
+
+        <div class="apl-card-body" style="margin-bottom:0.5rem">Isso ajuda a encontrar erros no hardware <strong>antes da fabricação</strong>.</div>
+      </div>
+
+      <!-- GOOGLE -->
+      <div class="apl-card" id="apl-google">
+        <div class="apl-card-hdr">
+          <div class="apl-card-icon">🌐</div>
+          <div class="apl-card-name">GOOGLE<br>Sistemas Distribuídos</div>
+        </div>
+
+        <!-- Server animation -->
+        <div class="server-row" id="server-row">
+          <div class="srv-dot" id="srv0">🖥</div>
+          <div class="srv-dot" id="srv1">🖥</div>
+          <div class="srv-dot" id="srv2">🖥</div>
+          <div class="srv-dot" id="srv3">🖥</div>
+          <div class="srv-dot" id="srv4">🖥</div>
+        </div>
+
+        <div class="apl-card-body">
+          O Google utiliza conceitos de lógica temporal para verificar <strong>sistemas distribuídos</strong>, onde milhares de servidores trabalham juntos e precisam permanecer consistentes.
+        </div>
+
+        <div class="apl-example-lbl">EXEMPLO EM LÓGICA TEMPORAL</div>
+        <div class="apl-quote" id="google-quote"><span class="cursor"></span></div>
+
+        <div class="apl-example-lbl" style="margin-top:0.8rem">ISSO GARANTE QUE:</div>
+        <div class="result-chips" id="google-chips">
+          <div class="r-chip" id="chip-a">dados não fiquem inconsistentes</div>
+          <div class="r-chip" id="chip-b">sistemas continuem funcionando mesmo com falhas</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Finalizar -->
+    <div style="text-align:center; margin-top:2.5rem;">
+      <button class="btn-px" style="background:var(--accent2,#e91e8c); font-size:0.6rem;" onclick="finalizarApresentacao()">
+        🎉 &nbsp;FINALIZAR APRESENTAÇÃO
+      </button>
+    </div>
+  </div>
+
+  <!-- Face rain overlay -->
+  <div id="face-overlay" style="display:none; position:fixed; inset:0; z-index:9000; pointer-events:none; overflow:hidden; background:rgba(0,0,0,0.0);">
+    <div id="trivial-word" style="
+      display:none;
+      position:fixed;
+      top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      font-family:'Press Start 2P',monospace;
+      font-size:clamp(3rem,10vw,7rem);
+      color:#FFD700;
+      text-shadow:0 0 40px #FFD700, 0 0 80px #FFD700, 4px 4px 0 #000;
+      z-index:9010;
+      animation:trivial-pop 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+      pointer-events:none;
+      letter-spacing:0.05em;
+    ">TRIVIAL</div>
+  </div>
+</div>
+
+<!-- =================== ENIGMA =================== -->
+<div class="screen" id="enigma">
+  <div class="enigma-wrap">
+    <div class="enigma-badge">🧩 ENIGMA FINAL</div>
+    <h2 class="enigma-h">O PASSAGEIRO<br>IMPACIENTE</h2>
+    <p class="enigma-sub">Você aprendeu LTL, o Problema de Frame e CTL. Agora use tudo para resolver um enigma real.</p>
+
+    <!-- Story -->
+    <div class="story-card">
+      <div class="story-tag">📖 A SITUAÇÃO</div>
+      <div class="story-scene">
+        <div class="story-emoji">🚗</div>
+        <div class="story-txt">
+          Um passageiro entra no carro autônomo e diz: <strong>"Quero chegar em casa o mais rápido possível."</strong><br>
+          O sistema registra a meta em LTL como:
+          <div class="broken-formula">
+            <span class="label">FÓRMULA DO CARRO</span>
+            <span>F(casa)</span>
+          </div>
+        </div>
+      </div>
+      <div class="bad-list">
+        <div class="bad-item"><span class="bi-icon">💨</span> O carro acelera sem parar — velocidade ilimitada</div>
+        <div class="bad-item"><span class="bi-icon">🚦</span> Ignora todos os semáforos vermelhos</div>
+        <div class="bad-item"><span class="bi-icon">🚶</span> Sobe na calçada para ganhar tempo</div>
+        <div class="bad-item"><span class="bi-icon">🤔</span> Tecnicamente correto: <em style="color:var(--yellow)">F(casa)</em> será satisfeita — ele chegará em casa... se não explodir antes.</div>
+      </div>
+    </div>
+
+    <!-- Builder -->
+    <div class="builder-card" id="builder-section">
+      <div class="builder-title">🔧 CONSERTE A FÓRMULA</div>
+      <div class="builder-desc">Clique nas restrições abaixo para adicioná-las à fórmula. Escolha apenas as que são <strong>necessárias e suficientes</strong> para garantir que o passageiro chegue vivo.</div>
+
+      <div class="formula-display" id="formula-display">
+        <span class="f-base">F(casa)</span>
+        <span class="f-sep" id="f-sep" style="display:none"> ∧ </span>
+        <span id="f-added"></span>
+        <span class="f-placeholder" id="f-placeholder">← adicione restrições aqui</span>
+      </div>
+
+      <div class="palette-label">Restrições disponíveis — clique para adicionar:</div>
+      <div class="palette" id="palette">
+        <div class="c-chip" onclick="addChip(this,'G(velocidade_segura)','Sempre em velocidade segura')" data-key="vel">
+          <span class="chip-code">G(velocidade_segura)</span>
+          <span class="chip-desc">Sempre em velocidade segura</span>
+        </div>
+        <div class="c-chip" onclick="addChip(this,'G(¬vermelho)','Nunca cruzar sinal vermelho')" data-key="red">
+          <span class="chip-code">G(¬vermelho)</span>
+          <span class="chip-desc">Nunca cruzar sinal vermelho</span>
+        </div>
+        <div class="c-chip" onclick="addChip(this,'G(¬calçada)','Nunca subir na calçada')" data-key="sid">
+          <span class="chip-code">G(¬calçada)</span>
+          <span class="chip-desc">Nunca subir na calçada</span>
+        </div>
+        <div class="c-chip distractor" onclick="addChip(this,'F(rápido)','Eventualmente irá rápido')" data-key="fast">
+          <span class="chip-code">F(rápido)</span>
+          <span class="chip-desc">Eventualmente irá rápido</span>
+        </div>
+        <div class="c-chip distractor" onclick="addChip(this,'X(acelerar)','No próximo instante acelera')" data-key="acc">
+          <span class="chip-code">X(acelerar)</span>
+          <span class="chip-desc">No próximo instante acelera</span>
+        </div>
+        <div class="c-chip distractor" onclick="addChip(this,'G(casa)','Sempre em casa')" data-key="home">
+          <span class="chip-code">G(casa)</span>
+          <span class="chip-desc">Sempre em casa</span>
+        </div>
+        <div class="c-chip" onclick="addChip(this,'F(abastecer)','Eventualmente o carro abastece')" data-key="fuel">
+          <span class="chip-code">F(abastecer)</span>
+          <span class="chip-desc">Eventualmente o carro abastece</span>
+        </div>
+      </div>
+
+      <div class="test-btn-row">
+        <button class="btn-test run" onclick="testFormula()">▶ TESTAR FÓRMULA</button>
+        <button class="btn-test clr" onclick="clearFormula()">↺ Limpar</button>
+      </div>
+
+      <div class="result-panel" id="result-panel">
+        <div class="rp-title" id="rp-title"></div>
+        <div class="sim-strip" id="sim-strip">
+          <div class="sim-car" id="sim-car" style="left:5%">🚗</div>
+          <div class="sim-obstacle" id="sim-obs" style="right:20%"></div>
+        </div>
+        <div class="rp-body" id="rp-body"></div>
+      </div>
+    </div>
+
+    <!-- Solved -->
+    <div class="solved-banner" id="solved-banner">
+      <div class="solved-icon">🏆</div>
+      <div class="solved-h">ENIGMA RESOLVIDO!</div>
+      <div class="solved-sub">
+        A fórmula correta combina <strong>Liveness</strong> com <strong>Safety</strong>:<br><br>
+        <span style="font-family:'Courier New',monospace; color:var(--yellow); font-size:0.95rem">F(casa) ∧ G(¬vermelho) ∧ G(¬calçada) ∧ G(velocidade_segura)</span><br><br>
+        F(casa) garante que o carro <em>eventualmente chega</em> — Liveness.<br>
+        Os três G(...) garantem que ele nunca viola restrições no caminho — Safety.<br><br>
+        Você também pode incluir <strong>F(abastecer)</strong> — uma Liveness extra válida que garante que o carro eventualmente abastece. Ela não é obrigatória para a segurança do passageiro, mas é uma restrição legítima de sistema.<br><br>
+        <strong>Sem Safety, Liveness chega ao destino destruindo tudo.</strong><br>
+        <strong>Sem Liveness, Safety para o carro para sempre.</strong>
+      </div>
+      <button class="btn-px" style="margin-top:1rem" onclick="showScreen('final')">VER RESUMO FINAL →</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== FINAL =================== -->
+<div class="screen" id="final">
+  <div class="final-wrap">
+    <div class="trophy">🚀</div>
+    <h2 class="final-h">JORNADA<br>CONCLUÍDA!</h2>
+    <p class="final-sub">Você percorreu 2 dias e resolveu o enigma final.</p>
+    <div class="recap-grid">
+      <div class="recap-item">
+        <div class="recap-day">DIA 1 — CAMINHO LIVRE</div>
+        <div class="recap-th">LTL — Lógica Linear</div>
+        <div class="recap-desc">Tempo flui em linha. Operadores G, F, X, U descrevem quando e como eventos ocorrem na sequência.</div>
+      </div>
+      <div class="recap-item">
+        <div class="recap-day">DIA 2 — O PARE</div>
+        <div class="recap-th">Negação e Persistência</div>
+        <div class="recap-desc">G(¬φ) proíbe eventos para sempre. Um único estado falso derruba toda uma garantia global.</div>
+      </div>
+    </div>
+    <button class="btn-px" onclick="restart()">↺ &nbsp;REFAZER JORNADA</button>
+  </div>
+</div>
+
+<script>
+// ================================
+// DATA — 4 DAYS
+// ================================
+const DAYS = [
+{
+  badge:'DIA 1', title:'Caminho Livre', concept:'LTL',
+  narr:`Manhã tranquila. Você pega as chaves, sai de casa e segue o trajeto de sempre: <strong>casa → rua principal → faculdade</strong>. O mundo é exatamente como você espera. Sem surpresas, sem obstáculos. Pura sequência.`,
+  scene:'normal',
+  theory:{
+    icon:'⏱', title:'Lógica Temporal Linear (LTL)',
+    body:`A <strong>LTL — Linear Temporal Logic</strong> modela o tempo como uma sequência linear e infinita de momentos: passado → presente → futuro. É como um trilho de trem — um único caminho, sem bifurcações. Cada momento leva a exatamente um próximo. <em>Quatro operadores</em> descrevem tudo que pode acontecer nesse trilho:`,
+    concepts:[
+      {c:'c-yellow', lbl:'G — Globalmente (Always)', txt:'<strong>G φ</strong>: φ é verdadeiro em <em>todos</em> os momentos. Ex: <span class="formula" style="display:inline;padding:0.1rem 0.4rem">G(estou_na_estrada)</span> — "em todo instante estou na estrada."'},
+      {c:'c-cyan', lbl:'F — Eventualmente (Finally)', txt:'<strong>F φ</strong>: φ será verdadeiro em <em>algum</em> momento futuro. Ex: <span class="formula" style="display:inline;padding:0.1rem 0.4rem">F(cheguei_na_facu)</span> — "eventualmente chegarei."'},
+      {c:'c-green', lbl:'X — Próximo Passo (neXt)', txt:'<strong>X φ</strong>: no <em>próximo instante</em>, φ é verdadeiro. Ex: <span class="formula" style="display:inline;padding:0.1rem 0.4rem">X(mais_perto)</span> — "no próximo segundo estou mais perto."'},
+      {c:'c-purple', lbl:'U — Até (Until)', txt:'<strong>φ U ψ</strong>: φ é verdadeiro <em>até que</em> ψ ocorra. O trajeto completo se descreve como:<div class="formula">G(dirigindo) U chegou_na_facu</div>"Continuo dirigindo <em>até</em> chegar — e eventualmente chego."'},
+    ],
+    ai:``
+  },
+  quiz:{
+    q:`Você quer modelar: "O carro se move continuamente ATÉ chegar em casa, e eventualmente chega." Qual fórmula LTL representa isso corretamente — e por que a outra opção parecida falha?`,
+    opts:[
+      'G(movendo) ∧ F(casa) — sempre em movimento e eventualmente chega em casa',
+      'G(movendo) U casa — move-se até chegar, e o Until garante que casa ocorre',
+      'F(movendo) U casa — eventualmente se move até chegar em casa',
+      'G(F(casa)) — globalmente, eventualmente chega em casa'
+    ],
+    ok:1,
+    fbOk:`✅ Correto! G(movendo) U casa captura as duas ideias ao mesmo tempo: o carro se move em todos os estados ATÉ (U) chegar em casa — e U garante que "casa" eventualmente ocorre. A opção A parece certa, mas G(movendo) nunca termina — o carro teria que continuar em movimento mesmo depois de chegar. U tem um fim; G não.`,
+    fbFail:`❌ A resposta correta é G(movendo) U casa. O operador U (Until) é o único que combina "movimento contínuo" com "chegada garantida" sem efeitos colaterais. F(casa) ∧ G(movendo) parece equivalente, mas G(movendo) proibiria o carro de parar mesmo depois de já estar em casa — G vale para sempre, U encerra quando a condição é satisfeita.`
+  }
+},
+{
+  badge:'DIA 2', title:'Apareceu um PARE', concept:'Frame Problem',
+  narr:`Você pega as chaves, sai de casa, mesmo trajeto de sempre. Na esquina, algo diferente: <strong>uma placa de PARE foi instalada durante a madrugada</strong>. Você quase passa direto — seu cérebro ainda estava rodando o trajeto de ontem.`,
+  scene:'stop',
+  theory: {
+    icon:'🚫', title:'O Operador ¬ — Negação',
+    body:`Para expressar que algo <strong>não deve acontecer</strong> em nenhum momento, LTL usa o operador de negação <em>¬</em> combinado com G:`,
+    concepts:[
+      {c:'c-yellow', lbl:'¬φ — "não é verdade que φ"', txt:'¬ inverte qualquer proposição. Se φ é verdadeiro, ¬φ é falso — e vice-versa.<div class="formula">¬tem_pare → não há placa neste estado</div>'},
+      {c:'c-red', lbl:'G(¬φ) — a fórmula de Safety', txt:'Combinado com G, ¬ proíbe algo para sempre:<div class="formula">G(¬tem_pare) = "nunca há placa em nenhum estado"</div>Era essa a suposição implícita do seu modelo. Funcionou por meses — até a placa aparecer e um único estado verdadeiro derrubar a garantia inteira.'},
+    ],
+    ai:``
+  },
+  quiz:{
+    q:`O carro autônomo deve nunca cruzar um semáforo vermelho e nunca subir na calçada. Qual fórmula LTL expressa essas duas restrições corretamente?`,
+    opts:[
+      'F(¬vermelho) ∧ F(¬calçada)',
+      'F(vermelho) ∧ F(calçada)',
+      'X(¬vermelho) ∧ X(¬calçada)',
+      'G(¬vermelho) ∧ G(¬calçada)'
+    ],
+    ok:3,
+    fbOk:`✅ Perfeito! G(¬vermelho) ∧ G(¬calçada) — em todo estado da trajetória, essas situações são proibidas. F diria apenas "eventualmente" vai ser seguro — não é suficiente. X cobre só o próximo instante. Apenas G garante que a restrição vale o tempo todo.`,
+    fbFail:`❌ A resposta correta é G(¬vermelho) ∧ G(¬calçada). F(¬φ) significa "eventualmente não haverá φ" — isso não proíbe o evento agora. X cobre só o próximo estado. Para Safety real, precisa de G: a proibição deve valer em absolutamente todos os estados.`
+  }
+}
+];
+
+// ================================
+// STATE
+// ================================
+let cur = 0;
+let busy = false;
+let answered = false;
+
+// ================================
+// UTILS
+// ================================
+function $(id) { return document.getElementById(id); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function notif(t, b) {
+  $('notif-t').textContent = t;
+  $('notif-b').textContent = b;
+  $('notif').classList.add('on');
+  setTimeout(() => $('notif').classList.remove('on'), 3200);
+}
+
+function bubble(txt, dur) {
+  $('sbub').innerHTML = txt.replace(/\n/g,'<br>');
+  $('sov').classList.add('on');
+  if (dur) setTimeout(() => $('sov').classList.remove('on'), dur);
+}
+
+function hideBubble() { $('sov').classList.remove('on'); }
+
+function setLight(r,y,g) {
+  $('tlr').className = 'tl-b' + (r?' r-on':'');
+  $('tly').className = 'tl-b' + (y?' y-on':'');
+  $('tlg').className = 'tl-b' + (g?' g-on':'');
+}
+
+function moveCar(pct, dur, ease='ease-in-out') {
+  const car = $('pcar');
+  car.style.transition = `left ${dur}ms ${ease}`;
+  car.style.left = pct + '%';
+  return new Promise(r => setTimeout(r, dur));
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ================================
+// JOURNEY START
+// ================================
+function startJourney() {
+  $('topbar').classList.add('visible');
+  showScreen('day-screen');
+  loadDay(0);
+}
+
+function loadDay(i) {
+  cur = i;
+  busy = false;
+  answered = false;
+  const d = DAYS[i];
+
+  // Update pips
+  ['pip1','pip2'].forEach((id,idx) => {
+    const el = $(id);
+    el.className = 'd-pip';
+    if (idx < i) el.classList.add('done');
+    else if (idx === i) el.classList.add('active');
+  });
+
+  $('day-badge').textContent = d.badge;
+  $('day-ttl').textContent = d.title;
+  $('day-concept').textContent = d.concept;
+  $('narr-txt').innerHTML = d.narr;
+
+  // Reset UI
+  $('drive-btn').disabled = false;
+  $('drive-btn').style.display = '';
+  $('drive-btn').textContent = '🚗  DIRIGIR';
+  $('theory-card').classList.remove('on');
+  $('quiz-card').classList.remove('on');
+  $('btn-next').classList.remove('on');
+  $('q-fb').classList.remove('on','ok','fail');
+
+  resetScene(d.scene);
+}
+
+function resetScene(scene) {
+  // Car
+  const car = $('pcar');
+  car.style.transition = 'none';
+  car.style.left = '7%';
+  car.style.top = 'calc(50% + 22px)';
+  car.style.transform = 'scaleX(-1) translateY(-50%)';
+
+  // Other car
+  const oc = $('ocar');
+  oc.style.display = 'none';
+  oc.style.transition = 'none';
+  oc.style.top = '-70px';
+  oc.style.left = '65%';
+
+  // Signs
+  $('ssign').style.display = 'none';
+  $('tlight').style.display = 'none';
+  $('xroad').style.display = 'none';
+  $('cflash').style.display = 'none';
+  hideBubble();
+  $('dashes').classList.remove('moving');
+
+  // Reset light
+  setLight(false,false,false);
+
+  // Setup per scene
+  if (scene === 'stop') {
+    $('ssign').style.display = 'flex';
+  } else if (scene === 'light' || scene === 'conflict') {
+    $('xroad').style.display = 'block';
+    $('tlight').style.display = 'flex';
+    setLight(true, false, false);
+  }
+}
+
+// ================================
+// DRIVE ANIMATIONS
+// ================================
+async function drive() {
+  if (busy) return;
+  busy = true;
+  const d = DAYS[cur];
+  const btn = $('drive-btn');
+  btn.disabled = true;
+  btn.textContent = '🚗  dirigindo...';
+
+  $('dashes').classList.add('moving');
+
+  if (d.scene === 'normal') {
+    await sleep(400);
+    bubble('🚗 Seguindo o trajeto!\nTudo como esperado...', 2000);
+    await moveCar(88, 3200);
+    hideBubble();
+    $('dashes').classList.remove('moving');
+    await sleep(300);
+    bubble('🎓 Chegou na faculdade!', 3000);
+    btn.style.display = 'none';
+    await sleep(3000);
+    hideBubble();
+    await sleep(300);
+    revealTheory();
+
+  } else if (d.scene === 'stop') {
+    bubble('🚗 Mesmo trajeto de ontem...', 1800);
+    await sleep(400);
+    await moveCar(58, 2200);
+    $('dashes').classList.remove('moving');
+    hideBubble();
+    await sleep(200);
+    bubble('⛔ PARE!\nPlaca nova!\nNão estava no meu modelo!', 0);
+    // Screechy brake
+    await moveCar(54, 350, 'ease-out');
+    await sleep(3500);
+    hideBubble();
+    btn.style.display = 'none';
+    await sleep(400);
+    revealTheory();
+
+  } else if (d.scene === 'light') {
+    bubble('🚗 Chegando à intersecção...', 1600);
+    await sleep(300);
+    await moveCar(56, 2000);
+    $('dashes').classList.remove('moving');
+    hideBubble();
+    await sleep(300);
+    bubble('🔴 SINAL VERMELHO!\nAguardando...', 2200);
+    await sleep(2400);
+    // Yellow
+    hideBubble();
+    setLight(false, true, false);
+    bubble('🟡 Preparando...', 1200);
+    await sleep(1400);
+    hideBubble();
+    // Green
+    setLight(false, false, true);
+    bubble('🟢 VERDE! Pode ir!', 2000);
+    $('dashes').classList.add('moving');
+    await moveCar(88, 2400);
+    $('dashes').classList.remove('moving');
+    hideBubble();
+    await sleep(300);
+    bubble('🎓 Chegou!\nEstado atual: crucial!', 2500);
+    btn.style.display = 'none';
+    await sleep(2700);
+    hideBubble();
+    await sleep(300);
+    revealTheory();
+
+  } else if (d.scene === 'conflict') {
+    // Day 4: green light, other car crashes in
+    setLight(false, false, true);
+    bubble('🟢 Verde pra mim!\nSeguindo...', 1400);
+    await sleep(300);
+    await moveCar(50, 2000);
+    hideBubble();
+    // Other car zooms in
+    const oc = $('ocar');
+    oc.style.display = 'block';
+    await sleep(100);
+    oc.style.transition = 'top 0.7s cubic-bezier(0.25, 0, 0.5, 1)';
+    oc.style.top = '34%';
+    await sleep(600);
+    // CRASH!
+    $('dashes').classList.remove('moving');
+    $('cflash').style.display = 'block';
+    $('cflash').style.animation = 'flash-anim 0.5s ease forwards';
+    bubble('🚨 ELE AVANÇOU!\nDois modelos colidiram!\nConflito temporal!', 0);
+    // Shake car
+    const car = $('pcar');
+    car.style.transition = 'left 0.08s';
+    for (let i = 0; i < 5; i++) {
+      car.style.left = (50 + (i%2===0 ? 1.5 : -1.5)) + '%';
+      await sleep(90);
+    }
+    car.style.left = '50%';
+    await sleep(3800);
+    hideBubble();
+    $('cflash').style.display = 'none';
+    btn.style.display = 'none';
+    await sleep(400);
+    revealTheory();
+  }
+}
+
+// ================================
+// THEORY REVEAL
+// ================================
+function revealTheory() {
+  const d = DAYS[cur];
+  const t = d.theory;
+
+  if (!t) {
+    // No theory for this day — go straight to quiz
+    revealQuiz();
+    return;
+  }
+
+  $('th-icon').textContent = t.icon;
+  $('th-title').textContent = t.title;
+  $('th-body').innerHTML = t.body;
+
+  $('th-concepts').innerHTML = t.concepts.map(c =>
+    `<div class="concept ${c.c}"><div class="concept-lbl">${c.lbl}</div>${c.txt}</div>`
+  ).join('');
+
+  $('ai-txt').innerHTML = t.ai;
+  $('ai-box').style.display = t.ai ? 'block' : 'none';
+
+  $('theory-card').classList.add('on');
+  $('theory-card').scrollIntoView({ behavior:'smooth', block:'nearest' });
+
+  notif('💡 Teoria desbloqueada!', t.title);
+
+  setTimeout(revealQuiz, 700);
+}
+
+// ================================
+// QUIZ
+// ================================
+function revealQuiz() {
+  const q = DAYS[cur].quiz;
+  $('q-txt').textContent = q.q;
+  const ltrs = ['A','B','C','D'];
+  $('q-opts').innerHTML = q.opts.map((opt,i) =>
+    `<button class="opt-btn" onclick="answer(${i})" id="opt${i}">
+      <span class="opt-ltr">${ltrs[i]}</span>${opt}
+    </button>`
+  ).join('');
+  $('q-fb').className = 'q-fb';
+  $('btn-next').classList.remove('on');
+  $('quiz-card').classList.add('on');
+  $('quiz-card').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function answer(i) {
+  if (answered) return;
+  answered = true;
+  const q = DAYS[cur].quiz;
+  const isOk = i === q.ok;
+  document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+  $(`opt${i}`).classList.add(isOk ? 'ok' : 'fail');
+  if (!isOk) $(`opt${q.ok}`).classList.add('ok');
+
+  const fb = $('q-fb');
+  fb.className = 'q-fb on ' + (isOk ? 'ok' : 'fail');
+  fb.textContent = isOk ? q.fbOk : q.fbFail;
+
+  if (isOk) notif('✅ Correto!', 'Bom raciocínio temporal!');
+  else notif('❌ Não foi dessa vez', 'Veja o feedback abaixo');
+
+  const nxt = $('btn-next');
+  nxt.classList.add('on');
+  if (cur >= DAYS.length - 1) {
+    nxt.textContent = '🧩 ENIGMA FINAL';
+    nxt.onclick = () => showScreen('enigma');
+  } else {
+    nxt.textContent = 'PRÓXIMO DIA  ▶';
+    nxt.onclick = () => loadDay(cur + 1);
+  }
+}
+
+// ================================
+// ENIGMA PUZZLE
+// ================================
+const CORRECT_KEYS = new Set(['vel','red','sid']);
+const DISTRACTORS  = new Set(['fast','acc','home']);
+let addedChips = []; // [{key, code}]
+
+function addChip(el, code, desc) {
+  const key = el.dataset.key;
+  if (el.classList.contains('used')) return;
+  el.classList.add('used');
+  addedChips.push({ key, code });
+  renderFormula();
+  // hide result if they keep editing
+  const rp = $('result-panel');
+  rp.classList.remove('on','ok','bad','warn');
+}
+
+function removeChip(key) {
+  addedChips = addedChips.filter(c => c.key !== key);
+  // re-enable palette chip
+  const el = document.querySelector(`.c-chip[data-key="${key}"]`);
+  if (el) el.classList.remove('used');
+  renderFormula();
+  $('result-panel').classList.remove('on','ok','bad','warn');
+}
+
+function renderFormula() {
+  const added = $('f-added');
+  const sep   = $('f-sep');
+  const ph    = $('f-placeholder');
+  const fd    = $('formula-display');
+
+  if (addedChips.length === 0) {
+    added.innerHTML = '';
+    sep.style.display = 'none';
+    ph.style.display  = 'inline';
+    fd.className = 'formula-display';
+  } else {
+    sep.style.display = 'inline';
+    ph.style.display  = 'none';
+    added.innerHTML = addedChips.map(c =>
+      `<span class="f-chip-added" onclick="removeChip('${c.key}')" title="remover">${c.code} ✕</span>
+       <span class="f-sep"> ∧ </span>`
+    ).join('').replace(/ ∧ <\/span>$/, '</span>'); // trim last ∧
+    fd.className = 'formula-display partial';
+  }
+}
+
+function clearFormula() {
+  addedChips = [];
+  document.querySelectorAll('.c-chip').forEach(el => el.classList.remove('used'));
+  renderFormula();
+  $('result-panel').classList.remove('on','ok','bad','warn');
+  $('solved-banner').classList.remove('on');
+  $('builder-section').style.display = 'block';
+}
+
+function testFormula() {
+  if (addedChips.length === 0) {
+    notif('⚠️ Fórmula vazia', 'Adicione pelo menos uma restrição!');
+    return;
+  }
+
+  const keys    = new Set(addedChips.map(c => c.key));
+  const hasVel  = keys.has('vel');
+  const hasRed  = keys.has('red');
+  const hasSid  = keys.has('sid');
+  const hasFuel = keys.has('fuel'); // optional — valid either way
+  const hasDist = [...keys].some(k => DISTRACTORS.has(k));
+  const allCorrect = hasVel && hasRed && hasSid;
+  const missingCorrect = !hasVel || !hasRed || !hasSid;
+
+  const rp    = $('result-panel');
+  const rpT   = $('rp-title');
+  const rpB   = $('rp-body');
+  const car   = $('sim-car');
+  const obs   = $('sim-obs');
+  const fd    = $('formula-display');
+  const strip = $('sim-strip');
+
+  rp.classList.add('on');
+
+  if (hasDist && missingCorrect) {
+    // Distractors + missing essentials
+    rp.className = 'result-panel on bad';
+    rpT.textContent = '✗ Fórmula incorreta';
+    rpB.innerHTML = `Você adicionou restrições que <strong>não corrigem os comportamentos perigosos</strong>. Operadores como <em>F(rápido)</em> ou <em>X(acelerar)</em> não são Safety — eles não proíbem nada, apenas descrevem intenções. Os problemas continuam.`;
+    obs.textContent = '💥';
+    obs.style.right = '20%';
+    car.style.left = '5%';
+    setTimeout(() => { car.style.left = '72%'; }, 100);
+    fd.className = 'formula-display invalid';
+    return;
+  }
+
+  if (hasDist && allCorrect) {
+    // Correct + unnecessary distractors
+    rp.className = 'result-panel on warn';
+    rpT.textContent = '⚠ Quase lá — fórmula redundante';
+    rpB.innerHTML = `As três restrições Safety estão corretas! Mas você adicionou operadores desnecessários (<em>F(rápido)</em>, <em>X(acelerar)</em>, <em>G(casa)</em>). Uma boa especificação em LTL deve ser <strong>mínima</strong> — sem restrições extras que podem criar conflitos ou comportamentos inesperados. Remova os redundantes.`;
+    obs.textContent = '';
+    car.style.left = '5%';
+    setTimeout(() => { car.style.left = '85%'; }, 100);
+    fd.className = 'formula-display partial';
+    return;
+  }
+
+  if (allCorrect && !hasDist) {
+    // Perfect!
+    rp.className = 'result-panel on ok';
+    rpT.textContent = '✓ Fórmula correta!';
+    rpB.innerHTML = `<strong>F(casa)</strong> garante que o carro eventualmente chega — <em>Liveness</em>.<br>
+    <strong>G(¬vermelho) ∧ G(¬calçada) ∧ G(velocidade_segura)</strong> garantem que nunca viola restrições no caminho — <em>Safety</em>.<br><br>
+    ${hasFuel ? '✅ <strong>F(abastecer)</strong> também está na fórmula — uma Liveness extra válida! Garante que o carro eventualmente abastece, sem conflitar com nenhuma das outras restrições.<br><br>' : ''}
+    Juntas, as propriedades definem um sistema temporalmente correto: <strong>chega ao destino sem destruir nada pelo caminho.</strong>`;
+    obs.textContent = '🏠';
+    obs.style.right = '8%';
+    car.style.left = '5%';
+    setTimeout(() => { car.style.left = '82%'; }, 100);
+    fd.className = 'formula-display valid';
+    // Show solved after animation
+    setTimeout(() => {
+      $('builder-section').style.display = 'none';
+      $('solved-banner').classList.add('on');
+    }, 5500);
+    return;
+  }
+
+  // Missing some correct ones
+  const missing = [];
+  if (!hasVel) missing.push('<em>G(velocidade_segura)</em>');
+  if (!hasRed)  missing.push('<em>G(¬vermelho)</em>');
+  if (!hasSid)  missing.push('<em>G(¬calçada)</em>');
+
+  rp.className = 'result-panel on bad';
+  rpT.textContent = '✗ Ainda há brechas';
+  rpB.innerHTML = `Falta${missing.length > 1 ? 'm' : ''}: ${missing.join(', ')}. Sem elas, o carro ainda pode ${!hasRed ? 'cruzar semáforos vermelhos' : !hasSid ? 'subir na calçada' : 'exceder velocidade segura'}. <strong>F(casa)</strong> continua válida — ele chegará em casa, mas pode causar acidentes antes.`;
+  obs.textContent = '💥';
+  obs.style.right = '20%';
+  car.style.left = '5%';
+  setTimeout(() => { car.style.left = '72%'; }, 100);
+  fd.className = 'formula-display invalid';
+}
+
+// ================================
+// APLICAÇÕES ANIMATIONS
+// ================================
+const INTEL_TEXT = '"Se uma instrução é enviada ao processador,\nela deve eventualmente ser executada."';
+const GOOGLE_TEXT = '"Se um servidor recebe uma atualização,\ntodos os outros devem eventualmente\nreceber também."';
+
+let aplInitialized = false;
+
+function initAplicacoes() {
+  if (aplInitialized) return;
+  aplInitialized = true;
+
+  // Draw branches
+  setTimeout(() => {
+    document.getElementById('branch-left').classList.add('drawn');
+  }, 200);
+  setTimeout(() => {
+    document.getElementById('branch-right').classList.add('drawn');
+  }, 500);
+
+  // Reveal cards
+  setTimeout(() => {
+    document.getElementById('apl-intel').classList.add('visible');
+  }, 900);
+  setTimeout(() => {
+    document.getElementById('apl-google').classList.add('visible');
+  }, 1100);
+
+  // Typewriter Intel
+  setTimeout(() => {
+    typeWriter('intel-quote', INTEL_TEXT, 32, () => {
+      animateChip();
+    });
+  }, 1400);
+
+  // Typewriter Google
+  setTimeout(() => {
+    typeWriter('google-quote', GOOGLE_TEXT, 32, () => {
+      animateServers();
+      setTimeout(() => { document.getElementById('chip-a').classList.add('shown'); }, 300);
+      setTimeout(() => { document.getElementById('chip-b').classList.add('shown'); }, 700);
+    });
+  }, 1900);
+}
+
+function typeWriter(elId, text, speed, cb) {
+  const el = document.getElementById(elId);
+  let i = 0;
+  el.innerHTML = '<span class="cursor"></span>';
+  const interval = setInterval(() => {
+    if (i >= text.length) {
+      clearInterval(interval);
+      el.innerHTML = text.replace(/\n/g, '<br>');
+      if (cb) cb();
+      return;
+    }
+    const chunk = text.substring(0, i + 1).replace(/\n/g, '<br>');
+    el.innerHTML = chunk + '<span class="cursor"></span>';
+    i++;
+  }, speed);
+}
+
+function animateChip() {
+  const anim = document.getElementById('chip-anim');
+  // Place pins around
+  const positions = [
+    {top:'8px',left:'20px'},{top:'8px',left:'36px'},{top:'8px',left:'52px'},
+    {bottom:'8px',left:'20px'},{bottom:'8px',left:'36px'},{bottom:'8px',left:'52px'},
+    {top:'20px',left:'2px'},{top:'36px',left:'2px'},
+    {top:'20px',right:'2px'},{top:'36px',right:'2px'},
+  ];
+  positions.forEach((pos, idx) => {
+    const pin = document.createElement('div');
+    pin.className = 'chip-pin';
+    Object.assign(pin.style, pos, {position:'absolute'});
+    anim.appendChild(pin);
+    setTimeout(() => {
+      pin.classList.add('ok');
+    }, 200 + idx * 120);
+  });
+  // One error pin that then corrects
+  setTimeout(() => {
+    const errPin = anim.children[3];
+    if (errPin) {
+      errPin.classList.remove('ok');
+      errPin.classList.add('err');
+      setTimeout(() => {
+        errPin.classList.remove('err');
+        errPin.classList.add('ok');
+      }, 1200);
+    }
+  }, 1500);
+}
+
+function animateServers() {
+  // srv0 gets update, propagates
+  const order = [0, 1, 2, 3, 4];
+  order.forEach((i, step) => {
+    setTimeout(() => {
+      const el = document.getElementById('srv' + i);
+      el.classList.add('syncing');
+      setTimeout(() => {
+        el.classList.remove('syncing');
+        el.classList.add('updated');
+      }, 700);
+    }, step * 500);
+  });
+  // Loop
+  setTimeout(() => {
+    document.querySelectorAll('.srv-dot').forEach(el => {
+      el.classList.remove('updated','syncing');
+    });
+    aplInitialized = false;
+    setTimeout(initAplicacoes, 400);
+  }, 6000);
+}
+
+const _origShowScreen = showScreen;
+// Override showScreen to trigger apl init
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if (id === 'aplicacoes') initAplicacoes();
+}
+
+
+function spawnFace() {
+  const overlay = document.getElementById('face-overlay');
+  const img = document.createElement('img');
+  img.src = 'data:image/png;base64,' + FACE_B64;
+  img.className = 'face-img';
+  const size = 60 + Math.random() * 90;
+  const x = Math.random() * 100;
+  const rot = (Math.random() - 0.5) * 60;
+  const dur = 2.5 + Math.random() * 2;
+  const delay = Math.random() * 0.5;
+  Object.assign(img.style, {
+    position: 'fixed',
+    left: x + 'vw',
+    top: '-120px',
+    width: size + 'px',
+    height: 'auto',
+    borderRadius: '50%',
+    animation: 'face-fall ' + dur + 's ' + delay + 's linear forwards',
+    zIndex: 9005,
+    pointerEvents: 'none',
+    filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))',
+  });
+  overlay.appendChild(img);
+  setTimeout(() => img.remove(), (dur + delay + 0.5) * 1000);
+}
+
+
+// ================================
+// FINALIZAR APRESENTAÇÃO
+// ================================
+const FACE_B64 = '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';
+
+function finalizarApresentacao() {
+  const overlay = document.getElementById('face-overlay');
+  const trivial  = document.getElementById('trivial-word');
+
+  overlay.querySelectorAll('.face-img').forEach(el => el.remove());
+  trivial.style.display = 'none';
+  overlay.style.display = 'block';
+
+  // Spawn continuously for 14 seconds
+  const totalDuration = 14000;
+  const spawnInterval = 80;
+  let elapsed = 0;
+  const iv = setInterval(() => {
+    spawnFace();
+    elapsed += spawnInterval;
+    if (elapsed >= totalDuration) clearInterval(iv);
+  }, spawnInterval);
+
+  setTimeout(() => { trivial.style.display = 'block'; }, 600);
+
+  // Hide after last face can finish falling (~max fall = 4500ms)
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    trivial.style.display = 'none';
+    overlay.querySelectorAll('.face-img').forEach(el => el.remove());
+  }, totalDuration + 5000);
+}
+
+function spawnFace() {
+  const overlay = document.getElementById('face-overlay');
+  const img = document.createElement('img');
+  img.src = 'data:image/png;base64,' + FACE_B64;
+  img.className = 'face-img';
+
+  const size   = 50 + Math.random() * 100;
+  // Spawn fully off-screen: anywhere from -size to window.innerWidth
+  const startX = -size + Math.random() * (window.innerWidth + size);
+  const startY = -(size + 20 + Math.random() * 80); // always above viewport
+  const dur    = 3000 + Math.random() * 1500;
+  const delay  = Math.random() * 200;
+  const rot    = (Math.random() - 0.5) * 120;
+
+  img.style.cssText = [
+    'position:fixed',
+    'top:' + startY + 'px',
+    'left:' + startX + 'px',
+    'width:' + size + 'px',
+    'height:auto',
+    'border-radius:50%',
+    'z-index:9005',
+    'pointer-events:none',
+    'filter:drop-shadow(0 6px 18px rgba(0,0,0,0.7))',
+    'will-change:transform,opacity',
+  ].join(';');
+
+  overlay.appendChild(img);
+
+  const fallDist = window.innerHeight + size + 120;
+  img.animate([
+    { transform: 'translateY(0px)          rotate(0deg)',          opacity: 1    },
+    { transform: 'translateY(' + fallDist + 'px) rotate(' + rot + 'deg)', opacity: 0.9  }
+  ], {
+    duration: dur,
+    delay: delay,
+    easing: 'linear',
+    fill: 'forwards'
+  });
+
+  setTimeout(() => img.remove(), dur + delay + 300);
+}
+
+function restart() {
+  $('topbar').classList.remove('visible');
+  clearFormula();
+  showScreen('intro');
+}
+</script>
+</body>
+</html>
