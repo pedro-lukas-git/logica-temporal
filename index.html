@@ -1419,7 +1419,7 @@ body {
           O sistema registra a meta em LTL como:
           <div class="broken-formula">
             <span class="label">FÓRMULA DO CARRO</span>
-            <span>F(casa)</span>
+            <span>( <span class="missing">???</span> ) U casa</span>
           </div>
         </div>
       </div>
@@ -1427,23 +1427,23 @@ body {
         <div class="bad-item"><span class="bi-icon">💨</span> O carro acelera sem parar — velocidade ilimitada</div>
         <div class="bad-item"><span class="bi-icon">🚦</span> Ignora todos os semáforos vermelhos</div>
         <div class="bad-item"><span class="bi-icon">🚶</span> Sobe na calçada para ganhar tempo</div>
-        <div class="bad-item"><span class="bi-icon">🤔</span> Tecnicamente correto: <em style="color:var(--yellow)">F(casa)</em> será satisfeita — ele chegará em casa... se não explodir antes.</div>
+        <div class="bad-item"><span class="bi-icon">🤔</span> Tecnicamente: o U garante que o carro chegará em casa — mas sem restrições dentro dos parênteses, qualquer comportamento é permitido no caminho.</div>
       </div>
     </div>
 
     <!-- Builder -->
     <div class="builder-card" id="builder-section">
-      <div class="builder-title">🔧 CONSERTE A FÓRMULA</div>
-      <div class="builder-desc">Clique nas restrições abaixo para adicioná-las à fórmula. Escolha apenas as que são <strong>necessárias e suficientes</strong> para garantir que o passageiro chegue vivo.</div>
+      <div class="builder-title">🔧 PREENCHA A FÓRMULA</div>
+      <div class="builder-desc">A estrutura já usa o operador U — o carro chega em casa garantido. Sua tarefa é preencher as restrições <strong>dentro dos parênteses</strong> para que ele chegue com segurança.</div>
 
       <div class="formula-display" id="formula-display">
-        <span class="f-base">F(casa)</span>
-        <span class="f-sep" id="f-sep" style="display:none"> ∧ </span>
+        <span class="f-base">( </span>
         <span id="f-added"></span>
         <span class="f-placeholder" id="f-placeholder">← adicione restrições aqui</span>
+        <span class="f-base"> ) U casa</span>
       </div>
 
-      <div class="palette-label">Restrições disponíveis — clique para adicionar:</div>
+      <div class="palette-label">Restrições Safety — clique para adicionar dentro do U:</div>
       <div class="palette" id="palette">
         <div class="c-chip" onclick="addChip(this,'G(velocidade_segura)','Sempre em velocidade segura')" data-key="vel">
           <span class="chip-code">G(velocidade_segura)</span>
@@ -1469,6 +1469,10 @@ body {
           <span class="chip-code">G(casa)</span>
           <span class="chip-desc">Sempre em casa</span>
         </div>
+      </div>
+
+      <div class="palette-label" style="margin-top:0.8rem">Liveness extra — opcional, pode adicionar junto:</div>
+      <div class="palette">
         <div class="c-chip" onclick="addChip(this,'F(abastecer)','Eventualmente o carro abastece')" data-key="fuel">
           <span class="chip-code">F(abastecer)</span>
           <span class="chip-desc">Eventualmente o carro abastece</span>
@@ -1495,13 +1499,12 @@ body {
       <div class="solved-icon">🏆</div>
       <div class="solved-h">ENIGMA RESOLVIDO!</div>
       <div class="solved-sub">
-        A fórmula correta combina <strong>Liveness</strong> com <strong>Safety</strong>:<br><br>
-        <span style="font-family:'Courier New',monospace; color:var(--yellow); font-size:0.95rem">F(casa) ∧ G(¬vermelho) ∧ G(¬calçada) ∧ G(velocidade_segura)</span><br><br>
-        F(casa) garante que o carro <em>eventualmente chega</em> — Liveness.<br>
-        Os três G(...) garantem que ele nunca viola restrições no caminho — Safety.<br><br>
-        Você também pode incluir <strong>F(abastecer)</strong> — uma Liveness extra válida que garante que o carro eventualmente abastece. Ela não é obrigatória para a segurança do passageiro, mas é uma restrição legítima de sistema.<br><br>
-        <strong>Sem Safety, Liveness chega ao destino destruindo tudo.</strong><br>
-        <strong>Sem Liveness, Safety para o carro para sempre.</strong>
+        A fórmula correta usa o operador <strong>U (Until)</strong>:<br><br>
+        <span style="font-family:'Courier New',monospace; color:var(--yellow); font-size:0.88rem">( G(velocidade_segura) ∧ G(¬vermelho) ∧ G(¬calçada) ) U casa</span><br><br>
+        Os três <strong>G(...)</strong> dentro dos parênteses são Safety — proíbem comportamentos perigosos em todo instante da viagem.<br>
+        O operador <strong>U</strong> garante que essas restrições valem <em>até chegar em casa</em> — e que a chegada eventualmente ocorre. O F(casa) fica implícito no próprio U.<br><br>
+        <strong>F(abastecer)</strong> é uma Liveness extra válida — o carro eventualmente abastece, sem conflitar com a fórmula principal.<br><br>
+        <strong>Sem as restrições dentro do U, ele chega — mas destruindo tudo no caminho.</strong>
       </div>
       <button class="btn-px" style="margin-top:1rem" onclick="showScreen('final')">VER RESUMO FINAL →</button>
     </div>
@@ -1922,22 +1925,18 @@ function removeChip(key) {
 
 function renderFormula() {
   const added = $('f-added');
-  const sep   = $('f-sep');
   const ph    = $('f-placeholder');
   const fd    = $('formula-display');
 
   if (addedChips.length === 0) {
     added.innerHTML = '';
-    sep.style.display = 'none';
-    ph.style.display  = 'inline';
+    ph.style.display = 'inline';
     fd.className = 'formula-display';
   } else {
-    sep.style.display = 'inline';
-    ph.style.display  = 'none';
-    added.innerHTML = addedChips.map(c =>
-      `<span class="f-chip-added" onclick="removeChip('${c.key}')" title="remover">${c.code} ✕</span>
-       <span class="f-sep"> ∧ </span>`
-    ).join('').replace(/ ∧ <\/span>$/, '</span>'); // trim last ∧
+    ph.style.display = 'none';
+    added.innerHTML = addedChips.map((c, i) =>
+      `<span class="f-chip-added" onclick="removeChip('${c.key}')" title="remover">${c.code} ✕</span>${i < addedChips.length - 1 ? '<span class="f-sep"> ∧ </span>' : ''}`
+    ).join('');
     fd.className = 'formula-display partial';
   }
 }
@@ -2005,10 +2004,10 @@ function testFormula() {
     // Perfect!
     rp.className = 'result-panel on ok';
     rpT.textContent = '✓ Fórmula correta!';
-    rpB.innerHTML = `<strong>F(casa)</strong> garante que o carro eventualmente chega — <em>Liveness</em>.<br>
-    <strong>G(¬vermelho) ∧ G(¬calçada) ∧ G(velocidade_segura)</strong> garantem que nunca viola restrições no caminho — <em>Safety</em>.<br><br>
-    ${hasFuel ? '✅ <strong>F(abastecer)</strong> também está na fórmula — uma Liveness extra válida! Garante que o carro eventualmente abastece, sem conflitar com nenhuma das outras restrições.<br><br>' : ''}
-    Juntas, as propriedades definem um sistema temporalmente correto: <strong>chega ao destino sem destruir nada pelo caminho.</strong>`;
+    rpB.innerHTML = `Os três <strong>G(...)</strong> dentro dos parênteses garantem Safety em todo instante da viagem.<br>
+    O operador <strong>U</strong> garante que essas restrições valem <em>até chegar em casa</em> — e que a chegada ocorre. F(casa) fica implícito no U.<br><br>
+    ${hasFuel ? '✅ <strong>F(abastecer)</strong> também está na fórmula — Liveness extra válida! O carro eventualmente abastece, sem conflitar com nada.<br><br>' : ''}
+    Sistema temporalmente correto: <strong>chega ao destino sem destruir nada pelo caminho.</strong>`;
     obs.textContent = '🏠';
     obs.style.right = '8%';
     car.style.left = '5%';
@@ -2030,7 +2029,7 @@ function testFormula() {
 
   rp.className = 'result-panel on bad';
   rpT.textContent = '✗ Ainda há brechas';
-  rpB.innerHTML = `Falta${missing.length > 1 ? 'm' : ''}: ${missing.join(', ')}. Sem elas, o carro ainda pode ${!hasRed ? 'cruzar semáforos vermelhos' : !hasSid ? 'subir na calçada' : 'exceder velocidade segura'}. <strong>F(casa)</strong> continua válida — ele chegará em casa, mas pode causar acidentes antes.`;
+  rpB.innerHTML = `Falta${missing.length > 1 ? 'm' : ''}: ${missing.join(', ')}. Sem elas, o carro ainda pode ${!hasRed ? 'cruzar semáforos vermelhos' : !hasSid ? 'subir na calçada' : 'exceder velocidade segura'} — o U ainda garante a chegada, mas sem essas restrições qualquer comportamento é permitido no caminho.`;
   obs.textContent = '💥';
   obs.style.right = '20%';
   car.style.left = '5%';
