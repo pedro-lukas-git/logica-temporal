@@ -29,7 +29,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: auto; }
 
 body {
   font-family: 'Outfit', sans-serif;
@@ -1606,7 +1606,6 @@ function $(id) { return document.getElementById(id); }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
-  window.scrollTo(0,0);
 }
 
 function notif(t, b) {
@@ -1729,63 +1728,58 @@ async function drive() {
   $('dashes').classList.add('moving');
 
   if (d.scene === 'normal') {
-    await sleep(400);
-    bubble('🚗 Seguindo o trajeto!\nTudo como esperado...', 2000);
-    await moveCar(88, 3200);
+    await sleep(300);
+    bubble('🚗 Seguindo o trajeto!\nTudo como esperado...', 1500);
+    await moveCar(88, 2200);
     hideBubble();
     $('dashes').classList.remove('moving');
-    await sleep(300);
-    bubble('🎓 Chegou na faculdade!', 3000);
+    bubble('🎓 Chegou na faculdade!', 800);
     btn.style.display = 'none';
-    await sleep(3000);
+    await sleep(800);
     hideBubble();
-    await sleep(300);
+    await sleep(150);
     revealTheory();
 
   } else if (d.scene === 'stop') {
-    bubble('🚗 Mesmo trajeto de ontem...', 1800);
-    await sleep(400);
-    await moveCar(58, 2200);
+    bubble('🚗 Mesmo trajeto de ontem...', 1200);
+    await sleep(300);
+    await moveCar(58, 1800);
     $('dashes').classList.remove('moving');
     hideBubble();
-    await sleep(200);
+    await sleep(150);
     bubble('⛔ PARE!\nPlaca nova!\nNão estava no meu modelo!', 0);
-    // Screechy brake
     await moveCar(54, 350, 'ease-out');
-    await sleep(3500);
+    await sleep(1200);
     hideBubble();
     btn.style.display = 'none';
-    await sleep(400);
+    await sleep(200);
     revealTheory();
 
   } else if (d.scene === 'light') {
-    bubble('🚗 Chegando à intersecção...', 1600);
+    bubble('🚗 Chegando à intersecção...', 1200);
     await sleep(300);
-    await moveCar(56, 2000);
+    await moveCar(56, 1600);
     $('dashes').classList.remove('moving');
     hideBubble();
-    await sleep(300);
-    bubble('🔴 SINAL VERMELHO!\nAguardando...', 2200);
-    await sleep(2400);
-    // Yellow
+    await sleep(200);
+    bubble('🔴 SINAL VERMELHO!\nAguardando...', 1400);
+    await sleep(1600);
     hideBubble();
     setLight(false, true, false);
-    bubble('🟡 Preparando...', 1200);
-    await sleep(1400);
+    bubble('🟡 Preparando...', 700);
+    await sleep(800);
     hideBubble();
-    // Green
     setLight(false, false, true);
-    bubble('🟢 VERDE! Pode ir!', 2000);
+    bubble('🟢 VERDE! Pode ir!', 1200);
     $('dashes').classList.add('moving');
-    await moveCar(88, 2400);
+    await moveCar(88, 1800);
     $('dashes').classList.remove('moving');
     hideBubble();
-    await sleep(300);
-    bubble('🎓 Chegou!\nEstado atual: crucial!', 2500);
+    bubble('🎓 Chegou!\nEstado atual: crucial!', 800);
     btn.style.display = 'none';
-    await sleep(2700);
+    await sleep(800);
     hideBubble();
-    await sleep(300);
+    await sleep(150);
     revealTheory();
 
   } else if (d.scene === 'conflict') {
@@ -1849,7 +1843,6 @@ function revealTheory() {
   $('ai-box').style.display = t.ai ? 'block' : 'none';
 
   $('theory-card').classList.add('on');
-  $('theory-card').scrollIntoView({ behavior:'smooth', block:'nearest' });
 
   notif('💡 Teoria desbloqueada!', t.title);
 
@@ -1871,7 +1864,6 @@ function revealQuiz() {
   $('q-fb').className = 'q-fb';
   $('btn-next').classList.remove('on');
   $('quiz-card').classList.add('on');
-  $('quiz-card').scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
 function answer(i) {
@@ -2168,7 +2160,6 @@ const _origShowScreen = showScreen;
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  window.scrollTo(0,0);
   if (id === 'aplicacoes') initAplicacoes();
 }
 
